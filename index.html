@@ -65,9 +65,9 @@ header{background:var(--surf);border-bottom:1px solid var(--border);
 /* ── MESE ── */
 #page-mese{padding:10px 12px;gap:6px}
 .day-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
-  padding:11px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;
+  padding:14px 13px 14px 16px;display:flex;align-items:center;gap:12px;min-height:72px;cursor:pointer;
   transition:border-color .15s,background .15s;position:relative;overflow:hidden}
-.day-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+.day-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;
   background:var(--border);border-radius:3px 0 0 3px}
 .day-card.tipo-standard::before  { background: var(--teal) }
 .day-card.tipo-continuato::before{ background: var(--accent) }
@@ -75,8 +75,8 @@ header{background:var(--surf);border-bottom:1px solid var(--border);
 .day-card.weekend{opacity:.4}
 .day-card:active{background:var(--card2);border-color:var(--accent)}
 .day-card.selected{border-color:var(--accent);background:var(--card2)}
-.day-num{font-family:'DM Mono',monospace;font-size:21px;font-weight:500;min-width:34px;line-height:1}
-.day-name{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.day-num{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;min-width:40px;line-height:1.1}
+.day-name{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
 .day-info{flex:1;min-width:0}
 .day-tipo-badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.6px;
   text-transform:uppercase;padding:2px 7px;border-radius:20px;margin-bottom:3px}
@@ -87,7 +87,7 @@ header{background:var(--surf);border-bottom:1px solid var(--border);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .day-right{text-align:right;flex-shrink:0}
 .day-ore{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--teal)}
-.day-stato{font-size:10px;font-weight:600;margin-top:2px}
+.day-stato{font-size:10px;font-weight:600;margin-top:3px}
 .partial-dot{display:inline-block;width:6px;height:6px;border-radius:50%;
   background:var(--warn);margin-left:4px;vertical-align:middle}
 
@@ -99,7 +99,7 @@ header{background:var(--surf);border-bottom:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between}
 .day-hdr .big{font-size:34px;font-weight:800;font-family:'DM Mono',monospace;
   color:var(--accent);line-height:1}
-.day-hdr .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.day-hdr .sub{font-size:12px;color:var(--muted);margin-top:3px}
 .day-hdr .ore-out{text-align:right}
 .day-hdr .ore-val{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:var(--teal)}
 .day-hdr .ore-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
@@ -123,11 +123,11 @@ header{background:var(--surf);border-bottom:1px solid var(--border);
 .time-grid.cols1{grid-template-columns:1fr 1fr}
 .time-field label{font-size:10px;color:var(--muted);text-transform:uppercase;
   letter-spacing:.6px;display:block;margin-bottom:5px;font-weight:600}
-.time-field input[type=time],.dur-input{
+.time-field input[type=text],.dur-input{
   width:100%;background:var(--input);border:1px solid var(--border);border-radius:10px;
   color:var(--text);font-family:'DM Mono',monospace;font-size:20px;font-weight:500;
   padding:10px 12px;outline:none;-webkit-appearance:none;transition:border-color .15s;text-align:center}
-.time-field input[type=time]:focus,.dur-input:focus{border-color:var(--accent);background:#1E2640}
+.time-field input[type=text]:focus,.dur-input:focus{border-color:var(--accent);background:#1E2640}
 .time-field input::placeholder{color:var(--muted);font-size:16px}
 
 /* durata ore con stepper */
@@ -206,7 +206,7 @@ header{background:var(--surf);border-bottom:1px solid var(--border);
 
   <div class="tabs">
     <div class="tab active" data-tab="mese">📅 Mese</div>
-    <div class="tab" data-tab="inserisci">✏️ Inserisci</div>
+    <div class="tab" data-tab="inserisci">✏ Inserisci</div>
     <div class="tab" data-tab="riepilogo">📊 Riepilogo</div>
   </div>
 
@@ -245,13 +245,13 @@ header{background:var(--surf);border-bottom:1px solid var(--border);
         <h4>🕐 Orario Standard</h4>
         <div class="time-grid">
           <div class="time-field"><label>Entrata</label>
-            <input type="time" id="s-entrata"/></div>
+            <input type="text" id="s-entrata" inputmode="numeric" maxlength="5" placeholder="08:00" autocomplete="off"/></div>
           <div class="time-field"><label>Inizio Pausa</label>
-            <input type="time" id="s-inizio-pausa"/></div>
+            <input type="text" id="s-inizio-pausa" inputmode="numeric" maxlength="5" placeholder="13:00" autocomplete="off"/></div>
           <div class="time-field"><label>Fine Pausa</label>
-            <input type="time" id="s-fine-pausa"/></div>
+            <input type="text" id="s-fine-pausa" inputmode="numeric" maxlength="5" placeholder="14:00" autocomplete="off"/></div>
           <div class="time-field"><label>Uscita</label>
-            <input type="time" id="s-uscita"/></div>
+            <input type="text" id="s-uscita" inputmode="numeric" maxlength="5" placeholder="17:00" autocomplete="off"/></div>
         </div>
       </div>
 
@@ -260,9 +260,9 @@ header{background:var(--surf);border-bottom:1px solid var(--border);
         <h4>⚡ Orario Continuato</h4>
         <div class="time-grid">
           <div class="time-field"><label>Entrata</label>
-            <input type="time" id="c-entrata"/></div>
+            <input type="text" id="c-entrata" inputmode="numeric" maxlength="5" placeholder="08:00" autocomplete="off"/></div>
           <div class="time-field"><label>Uscita</label>
-            <input type="time" id="c-uscita"/></div>
+            <input type="text" id="c-uscita" inputmode="numeric" maxlength="5" placeholder="13:00" autocomplete="off"/></div>
         </div>
       </div>
 
@@ -383,8 +383,11 @@ function fmtH(mins) {
   return `${h}h ${String(m).padStart(2,'0')}m`;
 }
 function toMins(t) {
-  if (!t) return null;
-  const [h,m] = t.split(':').map(Number);
+  if (!t || !t.trim()) return null;
+  const parts = t.trim().split(':');
+  if (parts.length !== 2) return null;
+  const h = parseInt(parts[0]), m = parseInt(parts[1]);
+  if (isNaN(h) || isNaN(m)) return null;
   return h*60 + m;
 }
 function toast(msg, col='var(--teal)') {
@@ -751,6 +754,35 @@ function switchTab(name) {
   if (name==='inserisci') updateForm();
 }
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+// ── AUTO-FORMAT HH:MM su input testuali ──
+function setupTimeInput(el) {
+  el.addEventListener('input', function() {
+    let v = this.value.replace(/[^0-9]/g, '');
+    if (v.length > 4) v = v.slice(0, 4);
+    if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
+    this.value = v;
+    refreshOre();
+  });
+  el.addEventListener('blur', function() {
+    // valida e normalizza al blur
+    let v = this.value.replace(/[^0-9:]/g,'');
+    const parts = v.split(':');
+    if (parts.length === 2) {
+      let h = parseInt(parts[0])||0, m = parseInt(parts[1])||0;
+      if (h > 23) h = 23;
+      if (m > 59) m = 59;
+      this.value = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    } else if (v.length === 4 && !v.includes(':')) {
+      this.value = v.slice(0,2)+':'+v.slice(2);
+    }
+    refreshOre();
+  });
+}
+['s-entrata','s-inizio-pausa','s-fine-pausa','s-uscita','c-entrata','c-uscita'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) setupTimeInput(el);
+});
 
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator)
