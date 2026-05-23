@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0B0F1A"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Ore Lavorate"/>
+<title>Ore Lavorate</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:      #0B0F1A;
+  --surf:    #131828;
+  --card:    #1A2035;
+  --card2:   #1F2640;
+  --border:  #252D45;
+  --accent:  #4B7BF5;
+  --violet:  #7C5CF6;
+  --teal:    #2DD4BF;
+  --warn:    #F59E0B;
+  --danger:  #EF4444;
+  --orange:  #F97316;
+  --text:    #E8ECF4;
+  --muted:   #5A6484;
+  --input:   #1A2035;
+  --r:       14px;
+  --safe-top: env(safe-area-inset-top,0px);
+  --safe-bot: env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;background:var(--bg);color:var(--text);
+  font-family:'Syne',sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none}
+
+#app{display:flex;flex-direction:column;height:100%;padding-top:var(--safe-top);padding-bottom:var(--safe-bot)}
+
+/* HEADER */
+header{background:var(--surf);border-bottom:1px solid var(--border);
+  padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.logo{font-size:17px;font-weight:800;letter-spacing:-.5px;
+  background:linear-gradient(135deg,var(--accent),var(--violet));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.month-nav{display:flex;align-items:center;gap:8px}
+.month-nav button{background:var(--card);border:1px solid var(--border);color:var(--text);
+  width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:background .15s}
+.month-nav button:active{background:var(--accent)}
+#month-label{font-size:13px;font-weight:600;min-width:118px;text-align:center;letter-spacing:.3px}
+
+/* TABS */
+.tabs{display:flex;background:var(--surf);border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:11px 0;text-align:center;font-size:11px;font-weight:600;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;
+  letter-spacing:.5px;text-transform:uppercase}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* PAGES */
+.page{display:none;flex:1;overflow-y:auto;overscroll-behavior:contain}
+.page.active{display:flex;flex-direction:column}
+
+/* ── MESE ── */
+#page-mese{padding:10px 12px;gap:6px}
+.day-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:11px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;
+  transition:border-color .15s,background .15s;position:relative;overflow:hidden}
+.day-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--border);border-radius:3px 0 0 3px}
+.day-card.tipo-standard::before  { background: var(--teal) }
+.day-card.tipo-continuato::before{ background: var(--accent) }
+.day-card.tipo-trasferta::before { background: var(--orange) }
+.day-card.weekend{opacity:.4}
+.day-card:active{background:var(--card2);border-color:var(--accent)}
+.day-card.selected{border-color:var(--accent);background:var(--card2)}
+.day-num{font-family:'DM Mono',monospace;font-size:21px;font-weight:500;min-width:34px;line-height:1}
+.day-name{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.day-info{flex:1;min-width:0}
+.day-tipo-badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;padding:2px 7px;border-radius:20px;margin-bottom:3px}
+.badge-standard  {background:var(--teal)22;color:var(--teal)}
+.badge-continuato{background:var(--accent)22;color:var(--accent)}
+.badge-trasferta {background:var(--orange)22;color:var(--orange)}
+.day-times{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day-right{text-align:right;flex-shrink:0}
+.day-ore{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--teal)}
+.day-stato{font-size:10px;font-weight:600;margin-top:2px}
+.partial-dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--warn);margin-left:4px;vertical-align:middle}
+
+/* ── INSERISCI ── */
+#page-inserisci{padding:14px;gap:12px}
+
+.day-hdr{background:linear-gradient(135deg,var(--accent)18,var(--violet)18);
+  border:1px solid var(--accent)44;border-radius:var(--r);padding:13px 15px;
+  display:flex;align-items:center;justify-content:space-between}
+.day-hdr .big{font-size:34px;font-weight:800;font-family:'DM Mono',monospace;
+  color:var(--accent);line-height:1}
+.day-hdr .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.day-hdr .ore-out{text-align:right}
+.day-hdr .ore-val{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:var(--teal)}
+.day-hdr .ore-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+
+/* tipo selector */
+.tipo-selector{display:flex;gap:8px}
+.tipo-btn{flex:1;padding:10px 4px;border-radius:10px;border:1px solid var(--border);
+  background:var(--card);color:var(--muted);font-family:'Syne',sans-serif;
+  font-size:11px;font-weight:700;cursor:pointer;text-align:center;
+  transition:all .15s;letter-spacing:.3px}
+.tipo-btn:active{transform:scale(.96)}
+.tipo-btn.sel-standard  {background:var(--teal)22;border-color:var(--teal);color:var(--teal)}
+.tipo-btn.sel-continuato{background:var(--accent)22;border-color:var(--accent);color:var(--accent)}
+.tipo-btn.sel-trasferta {background:var(--orange)22;border-color:var(--orange);color:var(--orange)}
+
+/* sezioni campi */
+.fields-section{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.fields-section h4{font-size:10px;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--muted);font-weight:700;margin-bottom:12px}
+.time-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.time-grid.cols1{grid-template-columns:1fr 1fr}
+.time-field label{font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.6px;display:block;margin-bottom:5px;font-weight:600}
+.time-field input[type=time],.dur-input{
+  width:100%;background:var(--input);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-family:'DM Mono',monospace;font-size:20px;font-weight:500;
+  padding:10px 12px;outline:none;-webkit-appearance:none;transition:border-color .15s;text-align:center}
+.time-field input[type=time]:focus,.dur-input:focus{border-color:var(--accent);background:#1E2640}
+.time-field input::placeholder{color:var(--muted);font-size:16px}
+
+/* durata ore con stepper */
+.dur-wrap{display:flex;align-items:center;gap:6px}
+.dur-wrap button{background:var(--card2);border:1px solid var(--border);color:var(--text);
+  width:36px;height:44px;border-radius:8px;font-size:20px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:background .1s}
+.dur-wrap button:active{background:var(--accent)}
+.dur-input{flex:1;font-size:18px;padding:10px 6px}
+
+.note-field{margin-top:10px}
+.note-field label{font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.6px;display:block;margin-bottom:5px;font-weight:600}
+.note-field textarea{width:100%;background:var(--input);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;
+  padding:10px 12px;outline:none;resize:none;height:60px;transition:border-color .15s;user-select:text}
+.note-field textarea:focus{border-color:var(--accent)}
+
+.btn-row{display:flex;gap:10px}
+.btn{flex:1;padding:14px;border-radius:var(--r);border:none;font-family:'Syne',sans-serif;
+  font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.3px;transition:opacity .15s,transform .1s}
+.btn:active{opacity:.8;transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-danger{background:var(--danger)22;color:var(--danger);border:1px solid var(--danger)44}
+
+.no-sel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;color:var(--muted);padding:40px;text-align:center}
+.no-sel .icon{font-size:46px;opacity:.4}
+.no-sel p{font-size:14px;line-height:1.6}
+
+/* ── RIEPILOGO ── */
+#page-riepilogo{padding:14px;gap:11px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px}
+.stat-card h3{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);
+  margin-bottom:6px;font-weight:600}
+.stat-val{font-family:'DM Mono',monospace;font-size:30px;font-weight:500;color:var(--teal);line-height:1}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stats-grid .stat-val{font-size:20px}
+.std-row{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:13px 15px;display:flex;align-items:center;justify-content:space-between}
+.std-row label{font-size:13px;color:var(--muted)}
+.std-row input{background:var(--input);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:'DM Mono',monospace;font-size:16px;
+  padding:6px 12px;width:70px;text-align:center;outline:none}
+.export-btn{background:linear-gradient(135deg,var(--accent),var(--violet));color:#fff;
+  border:none;border-radius:var(--r);padding:16px;font-family:'Syne',sans-serif;
+  font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;
+  transition:opacity .15s,transform .1s;display:flex;align-items:center;
+  justify-content:center;gap:8px;flex-shrink:0}
+.export-btn:active{opacity:.85;transform:scale(.98)}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(68px + var(--safe-bot));left:50%;
+  transform:translateX(-50%) translateY(20px);background:var(--card2);
+  border:1px solid var(--border);border-radius:30px;padding:9px 20px;
+  font-size:13px;font-weight:600;color:var(--text);opacity:0;transition:all .25s;
+  pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="logo">◷ Ore Lav.</div>
+    <div class="month-nav">
+      <button id="prev-month">‹</button>
+      <div id="month-label">—</div>
+      <button id="next-month">›</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="mese">📅 Mese</div>
+    <div class="tab" data-tab="inserisci">✏️ Inserisci</div>
+    <div class="tab" data-tab="riepilogo">📊 Riepilogo</div>
+  </div>
+
+  <!-- MESE -->
+  <div id="page-mese" class="page active"></div>
+
+  <!-- INSERISCI -->
+  <div id="page-inserisci" class="page">
+    <div id="insert-no-sel" class="no-sel">
+      <div class="icon">👆</div>
+      <p>Seleziona un giorno dalla scheda <strong>Mese</strong></p>
+    </div>
+    <div id="insert-form" style="display:none;flex-direction:column;gap:12px;padding:14px">
+
+      <!-- header giorno -->
+      <div class="day-hdr">
+        <div>
+          <div class="big" id="f-day-num">–</div>
+          <div class="sub" id="f-day-lbl">–</div>
+        </div>
+        <div class="ore-out">
+          <div class="ore-val" id="f-ore-tot">–</div>
+          <div class="ore-lbl">ore lavorate</div>
+        </div>
+      </div>
+
+      <!-- tipo giornata -->
+      <div class="tipo-selector">
+        <button class="tipo-btn" data-tipo="standard"  onclick="setTipo('standard')">🕐 Standard</button>
+        <button class="tipo-btn" data-tipo="continuato" onclick="setTipo('continuato')">⚡ Continuato</button>
+        <button class="tipo-btn" data-tipo="trasferta" onclick="setTipo('trasferta')">✈️ Trasferta</button>
+      </div>
+
+      <!-- STANDARD: entrata / inizio-pausa / fine-pausa / uscita -->
+      <div class="fields-section" id="sec-standard">
+        <h4>🕐 Orario Standard</h4>
+        <div class="time-grid">
+          <div class="time-field"><label>Entrata</label>
+            <input type="time" id="s-entrata"/></div>
+          <div class="time-field"><label>Inizio Pausa</label>
+            <input type="time" id="s-inizio-pausa"/></div>
+          <div class="time-field"><label>Fine Pausa</label>
+            <input type="time" id="s-fine-pausa"/></div>
+          <div class="time-field"><label>Uscita</label>
+            <input type="time" id="s-uscita"/></div>
+        </div>
+      </div>
+
+      <!-- CONTINUATO: entrata / uscita -->
+      <div class="fields-section" id="sec-continuato" style="display:none">
+        <h4>⚡ Orario Continuato</h4>
+        <div class="time-grid">
+          <div class="time-field"><label>Entrata</label>
+            <input type="time" id="c-entrata"/></div>
+          <div class="time-field"><label>Uscita</label>
+            <input type="time" id="c-uscita"/></div>
+        </div>
+      </div>
+
+      <!-- TRASFERTA: campi durata -->
+      <div class="fields-section" id="sec-trasferta" style="display:none">
+        <h4>✈️ Trasferta — Durate (ore)</h4>
+        <div class="time-grid">
+          <div class="time-field">
+            <label>🚗 Viaggio A/R (h)</label>
+            <div class="dur-wrap">
+              <button onclick="stepDur('t-viaggio',-0.5)">−</button>
+              <input class="dur-input" type="number" id="t-viaggio" value="" min="0" max="24" step="0.5" placeholder="0"/>
+              <button onclick="stepDur('t-viaggio',0.5)">+</button>
+            </div>
+          </div>
+          <div class="time-field">
+            <label>💼 Lavoro (h)</label>
+            <div class="dur-wrap">
+              <button onclick="stepDur('t-lavoro',-0.5)">−</button>
+              <input class="dur-input" type="number" id="t-lavoro" value="" min="0" max="24" step="0.5" placeholder="0"/>
+              <button onclick="stepDur('t-lavoro',0.5)">+</button>
+            </div>
+          </div>
+          <div class="time-field">
+            <label>🍽️ Pausa Pranzo (h)</label>
+            <div class="dur-wrap">
+              <button onclick="stepDur('t-pranzo',-0.5)">−</button>
+              <input class="dur-input" type="number" id="t-pranzo" value="" min="0" max="4" step="0.5" placeholder="0"/>
+              <button onclick="stepDur('t-pranzo',0.5)">+</button>
+            </div>
+          </div>
+          <div class="time-field">
+            <label>🍷 Pausa Cena (h)</label>
+            <div class="dur-wrap">
+              <button onclick="stepDur('t-cena',-0.5)">−</button>
+              <input class="dur-input" type="number" id="t-cena" value="" min="0" max="4" step="0.5" placeholder="0"/>
+              <button onclick="stepDur('t-cena',0.5)">+</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:8px;
+             font-size:11px;color:var(--muted);line-height:1.6">
+          Le ore lavorate in trasferta = Viaggio + Lavoro<br>
+          Le pause vengono registrate ma non conteggiate
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div class="note-field">
+        <label>📝 Note (opzionale)</label>
+        <textarea id="f-note" placeholder="Inserisci eventuali note..."></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveDay()">💾 Salva</button>
+        <button class="btn btn-danger"  onclick="deleteDay()">🗑 Cancella</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIEPILOGO -->
+  <div id="page-riepilogo" class="page">
+    <div style="padding:14px;display:flex;flex-direction:column;gap:11px;flex:1">
+      <div class="stat-card">
+        <h3>Totale ore mese</h3>
+        <div class="stat-val" id="r-totale">–</div>
+        <div class="stat-sub" id="r-sub">Nessun dato</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><h3>Giorni lavorati</h3>
+          <div class="stat-val" id="r-giorni">–</div></div>
+        <div class="stat-card"><h3>Media giornaliera</h3>
+          <div class="stat-val" id="r-media">–</div></div>
+        <div class="stat-card"><h3>Ore extra</h3>
+          <div class="stat-val" id="r-extra" style="color:var(--teal)">–</div></div>
+        <div class="stat-card"><h3>Ore mancanti</h3>
+          <div class="stat-val" id="r-mancanti" style="color:var(--danger)">–</div></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><h3>✈️ Giorni trasferta</h3>
+          <div class="stat-val" id="r-trasferte" style="color:var(--orange)">–</div></div>
+        <div class="stat-card"><h3>⚡ Giorni continuato</h3>
+          <div class="stat-val" id="r-continuati" style="color:var(--accent)">–</div></div>
+      </div>
+      <div class="std-row">
+        <label>Ore standard/giorno</label>
+        <input type="number" id="std-hours" value="8" min="1" max="12" step="0.5" oninput="renderRiepilogo();renderMese()"/>
+      </div>
+      <button class="export-btn" onclick="exportExcel()">📊 Esporta Excel</button>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATI ──
+const MESI   = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+                 "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+const GIORNI = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
+const GIORNI_S = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+
+let curYear  = new Date().getFullYear();
+let curMonth = new Date().getMonth() + 1;
+let selDay   = null;
+let curTipo  = 'standard';
+let data     = JSON.parse(localStorage.getItem('oreLavorateV2') || '{}');
+
+function save()      { localStorage.setItem('oreLavorateV2', JSON.stringify(data)); }
+function key()       { return `${curYear}-${String(curMonth).padStart(2,'0')}`; }
+function monthData() { return data[key()] || {}; }
+function daysInMonth(y,m) { return new Date(y, m, 0).getDate(); }
+function weekday(y,m,d)   { return (new Date(y,m-1,d).getDay()+6)%7; }
+
+function fmtH(mins) {
+  if (mins === null || mins === undefined || mins < 0) return '–';
+  const h = Math.floor(mins/60), m = mins%60;
+  return `${h}h ${String(m).padStart(2,'0')}m`;
+}
+function toMins(t) {
+  if (!t) return null;
+  const [h,m] = t.split(':').map(Number);
+  return h*60 + m;
+}
+function toast(msg, col='var(--teal)') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.color = col;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── CALCOLO ORE per tipo ──
+function calcOreEntry(entry) {
+  if (!entry) return null;
+  const tipo = entry.tipo || 'standard';
+  if (tipo === 'standard') {
+    const e  = toMins(entry.entrata);
+    const ip = toMins(entry.inizio_pausa);
+    const fp = toMins(entry.fine_pausa);
+    const u  = toMins(entry.uscita);
+    // calcola con i campi disponibili
+    if (e !== null && u !== null && ip !== null && fp !== null)
+      return Math.max(0, (u - e) - (fp - ip));
+    if (e !== null && u !== null)
+      return Math.max(0, u - e);
+    return null;
+  }
+  if (tipo === 'continuato') {
+    const e = toMins(entry.entrata);
+    const u = toMins(entry.uscita);
+    if (e !== null && u !== null) return Math.max(0, u - e);
+    return null;
+  }
+  if (tipo === 'trasferta') {
+    // ore lavorate = viaggio + lavoro (in minuti)
+    const v = parseFloat(entry.viaggio || 0) * 60;
+    const l = parseFloat(entry.lavoro  || 0) * 60;
+    const tot = v + l;
+    return tot > 0 ? Math.round(tot) : null;
+  }
+  return null;
+}
+
+// ── RENDER MESE ──
+function renderMese() {
+  document.getElementById('month-label').textContent = `${MESI[curMonth-1]} ${curYear}`;
+  const pg = document.getElementById('page-mese');
+  pg.innerHTML = '';
+  const md  = monthData();
+  const n   = daysInMonth(curYear, curMonth);
+  const std = parseFloat(document.getElementById('std-hours')?.value || 8) * 60;
+
+  for (let d = 1; d <= n; d++) {
+    const wd   = weekday(curYear, curMonth, d);
+    const isWk = wd >= 5;
+    const saved = md[d] || null;
+    const tipo  = saved?.tipo || 'standard';
+    const oreMin = saved ? calcOreEntry(saved) : null;
+    const isPartial = saved && oreMin === null;
+
+    const card = document.createElement('div');
+    card.className = 'day-card'
+      + (isWk ? ' weekend' : '')
+      + (saved ? ` tipo-${tipo}` : '')
+      + (selDay === d ? ' selected' : '');
+
+    const extra = (oreMin !== null) ? oreMin - std : null;
+    const statoColor = extra === null ? 'var(--muted)'
+      : extra > 0 ? 'var(--teal)' : extra < 0 ? 'var(--danger)' : 'var(--muted)';
+    const statoTxt = extra === null ? ''
+      : extra > 0 ? `+${fmtH(extra)}` : extra < 0 ? `-${fmtH(Math.abs(extra))}` : '✓';
+
+    let timesStr = isWk ? GIORNI[wd] : 'Nessun dato';
+    let badgeHtml = '';
+    if (saved) {
+      badgeHtml = `<span class="day-tipo-badge badge-${tipo}">${tipo}</span><br>`;
+      if (tipo === 'standard')
+        timesStr = [saved.entrata, saved.inizio_pausa, saved.fine_pausa, saved.uscita]
+          .filter(Boolean).join(' · ') || '(parziale)';
+      else if (tipo === 'continuato')
+        timesStr = [saved.entrata, saved.uscita].filter(Boolean).join(' → ') || '(parziale)';
+      else if (tipo === 'trasferta')
+        timesStr = `🚗${saved.viaggio||0}h  💼${saved.lavoro||0}h  🍽️${saved.pranzo||0}h  🍷${saved.cena||0}h`;
+    }
+
+    card.innerHTML = `
+      <div>
+        <div class="day-num">${String(d).padStart(2,'0')}</div>
+        <div class="day-name">${GIORNI_S[wd]}</div>
+      </div>
+      <div class="day-info">
+        ${badgeHtml}
+        <div class="day-times">${timesStr}</div>
+      </div>
+      <div class="day-right">
+        <div class="day-ore">${oreMin !== null ? fmtH(oreMin) : (saved ? '<span class="partial-dot"></span>' : '')}</div>
+        <div class="day-stato" style="color:${statoColor}">${statoTxt}</div>
+      </div>`;
+
+    card.addEventListener('click', () => selectDay(d));
+    pg.appendChild(card);
+  }
+}
+
+// ── SELECT / FORM ──
+function selectDay(d) {
+  selDay = d;
+  renderMese();
+  updateForm();
+  switchTab('inserisci');
+}
+
+function setTipo(tipo) {
+  curTipo = tipo;
+  document.querySelectorAll('.tipo-btn').forEach(b => {
+    b.className = 'tipo-btn' + (b.dataset.tipo === tipo ? ` sel-${tipo}` : '');
+  });
+  document.getElementById('sec-standard').style.display   = tipo==='standard'   ? '' : 'none';
+  document.getElementById('sec-continuato').style.display = tipo==='continuato' ? '' : 'none';
+  document.getElementById('sec-trasferta').style.display  = tipo==='trasferta'  ? '' : 'none';
+  refreshOre();
+}
+
+function stepDur(id, delta) {
+  const el = document.getElementById(id);
+  let v = parseFloat(el.value || 0) + delta;
+  if (v < 0) v = 0;
+  el.value = v % 1 === 0 ? v : v.toFixed(1);
+  refreshOre();
+}
+
+function refreshOre() {
+  // costruisci entry temporanea dal form
+  const entry = buildEntryFromForm();
+  const mins  = calcOreEntry(entry);
+  document.getElementById('f-ore-tot').textContent = mins !== null ? fmtH(mins) : '–';
+}
+
+function buildEntryFromForm() {
+  const tipo = curTipo;
+  const base = { tipo, note: document.getElementById('f-note')?.value || '' };
+  if (tipo === 'standard') {
+    return { ...base,
+      entrata:      document.getElementById('s-entrata').value,
+      inizio_pausa: document.getElementById('s-inizio-pausa').value,
+      fine_pausa:   document.getElementById('s-fine-pausa').value,
+      uscita:       document.getElementById('s-uscita').value,
+    };
+  }
+  if (tipo === 'continuato') {
+    return { ...base,
+      entrata: document.getElementById('c-entrata').value,
+      uscita:  document.getElementById('c-uscita').value,
+    };
+  }
+  if (tipo === 'trasferta') {
+    return { ...base,
+      viaggio: document.getElementById('t-viaggio').value || '0',
+      lavoro:  document.getElementById('t-lavoro').value  || '0',
+      pranzo:  document.getElementById('t-pranzo').value  || '0',
+      cena:    document.getElementById('t-cena').value    || '0',
+    };
+  }
+}
+
+function updateForm() {
+  const noSel = document.getElementById('insert-no-sel');
+  const form  = document.getElementById('insert-form');
+  if (!selDay) { noSel.style.display='flex'; form.style.display='none'; return; }
+  noSel.style.display = 'none';
+  form.style.display  = 'flex';
+
+  const wd = weekday(curYear, curMonth, selDay);
+  document.getElementById('f-day-num').textContent = String(selDay).padStart(2,'0');
+  document.getElementById('f-day-lbl').textContent = `${GIORNI[wd]}, ${MESI[curMonth-1]} ${curYear}`;
+
+  const saved = monthData()[selDay] || {};
+  const tipo  = saved.tipo || 'standard';
+  setTipo(tipo);
+
+  // Ripopola campi
+  if (tipo === 'standard') {
+    document.getElementById('s-entrata').value      = saved.entrata      || '';
+    document.getElementById('s-inizio-pausa').value = saved.inizio_pausa || '';
+    document.getElementById('s-fine-pausa').value   = saved.fine_pausa   || '';
+    document.getElementById('s-uscita').value       = saved.uscita       || '';
+  } else if (tipo === 'continuato') {
+    document.getElementById('c-entrata').value = saved.entrata || '';
+    document.getElementById('c-uscita').value  = saved.uscita  || '';
+  } else if (tipo === 'trasferta') {
+    document.getElementById('t-viaggio').value = saved.viaggio || '';
+    document.getElementById('t-lavoro').value  = saved.lavoro  || '';
+    document.getElementById('t-pranzo').value  = saved.pranzo  || '';
+    document.getElementById('t-cena').value    = saved.cena    || '';
+  }
+  document.getElementById('f-note').value = saved.note || '';
+
+  // Ascolta cambiamenti per aggiornare ore live
+  ['s-entrata','s-inizio-pausa','s-fine-pausa','s-uscita',
+   'c-entrata','c-uscita','t-viaggio','t-lavoro','t-pranzo','t-cena']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      el.removeEventListener('change', refreshOre);
+      el.addEventListener('change', refreshOre);
+      el.removeEventListener('input', refreshOre);
+      el.addEventListener('input', refreshOre);
+    });
+
+  refreshOre();
+}
+
+// ── SALVA / CANCELLA ──
+function saveDay() {
+  if (!selDay) return;
+  const entry = buildEntryFromForm();
+
+  // Validazione minima per tipo
+  if (curTipo === 'standard') {
+    if (!entry.entrata && !entry.uscita && !entry.inizio_pausa && !entry.fine_pausa) {
+      toast('⚠️ Inserisci almeno un orario', 'var(--warn)'); return;
+    }
+  } else if (curTipo === 'continuato') {
+    if (!entry.entrata && !entry.uscita) {
+      toast('⚠️ Inserisci almeno entrata o uscita', 'var(--warn)'); return;
+    }
+  } else if (curTipo === 'trasferta') {
+    if (!entry.viaggio && !entry.lavoro && !entry.pranzo && !entry.cena) {
+      toast('⚠️ Inserisci almeno una durata', 'var(--warn)'); return;
+    }
+  }
+
+  if (!data[key()]) data[key()] = {};
+  data[key()][selDay] = entry;
+  save();
+  toast('✅ Salvato!');
+  renderMese();
+  renderRiepilogo();
+}
+
+function deleteDay() {
+  if (!selDay) return;
+  if (!data[key()]?.[selDay]) return;
+  delete data[key()][selDay];
+  save();
+  // reset form
+  ['s-entrata','s-inizio-pausa','s-fine-pausa','s-uscita','c-entrata','c-uscita'].forEach(id =>
+    document.getElementById(id).value = '');
+  ['t-viaggio','t-lavoro','t-pranzo','t-cena'].forEach(id =>
+    document.getElementById(id).value = '');
+  document.getElementById('f-note').value = '';
+  document.getElementById('f-ore-tot').textContent = '–';
+  toast('🗑 Eliminato', 'var(--muted)');
+  renderMese();
+  renderRiepilogo();
+}
+
+// ── RIEPILOGO ──
+function renderRiepilogo() {
+  const md  = monthData();
+  const std = parseFloat(document.getElementById('std-hours')?.value || 8) * 60;
+  const entries = Object.values(md);
+  let totMin = 0, extra = 0, mancanti = 0;
+  let nTrasferte = 0, nContinuati = 0;
+
+  entries.forEach(e => {
+    const m = calcOreEntry(e);
+    if (m !== null) {
+      totMin += m;
+      if (m > std) extra    += m - std;
+      if (m < std) mancanti += std - m;
+    }
+    if (e.tipo === 'trasferta')  nTrasferte++;
+    if (e.tipo === 'continuato') nContinuati++;
+  });
+
+  const giorni = entries.length;
+  const media  = giorni ? Math.round(totMin / giorni) : 0;
+
+  document.getElementById('r-totale').textContent    = giorni ? fmtH(totMin) : '–';
+  document.getElementById('r-giorni').textContent    = giorni || '–';
+  document.getElementById('r-media').textContent     = giorni ? fmtH(media) : '–';
+  document.getElementById('r-extra').textContent     = fmtH(Math.round(extra));
+  document.getElementById('r-mancanti').textContent  = fmtH(Math.round(mancanti));
+  document.getElementById('r-trasferte').textContent = nTrasferte || '0';
+  document.getElementById('r-continuati').textContent= nContinuati || '0';
+  document.getElementById('r-sub').textContent       = giorni
+    ? `su ${daysInMonth(curYear,curMonth)} giorni del mese` : 'Nessun dato inserito';
+}
+
+// ── EXPORT EXCEL ──
+function exportExcel() {
+  const md = monthData();
+  if (!Object.keys(md).length) { toast('⚠️ Nessun dato da esportare','var(--warn)'); return; }
+
+  const std = parseFloat(document.getElementById('std-hours').value || 8);
+  const wb  = XLSX.utils.book_new();
+  const rows = [];
+
+  // Titolo
+  rows.push([`Registro Ore — ${MESI[curMonth-1]} ${curYear}`]);
+  rows.push([]);
+  rows.push(['Giorno','Giorno Sett.','Tipo','Dettaglio Orari',
+             'Ore Lavorate','Differenza','Note']);
+
+  const n = daysInMonth(curYear, curMonth);
+  let totMin = 0;
+
+  for (let d = 1; d <= n; d++) {
+    const wd    = weekday(curYear, curMonth, d);
+    const saved = md[d];
+
+    if (!saved) {
+      if (wd < 5)
+        rows.push([d, GIORNI[wd], '–','–','–','–','']);
+      else
+        rows.push([d, GIORNI[wd], wd===5?'Sabato':'Domenica','','','','']);
+      continue;
+    }
+
+    const tipo   = saved.tipo || 'standard';
+    const oreMin = calcOreEntry(saved);
+    if (oreMin) totMin += oreMin;
+
+    let dettaglio = '';
+    if (tipo === 'standard')
+      dettaglio = `Entrata: ${saved.entrata||'–'} | Pausa: ${saved.inizio_pausa||'–'}–${saved.fine_pausa||'–'} | Uscita: ${saved.uscita||'–'}`;
+    else if (tipo === 'continuato')
+      dettaglio = `Entrata: ${saved.entrata||'–'} | Uscita: ${saved.uscita||'–'}`;
+    else if (tipo === 'trasferta')
+      dettaglio = `Viaggio: ${saved.viaggio||0}h | Lavoro: ${saved.lavoro||0}h | Pranzo: ${saved.pranzo||0}h | Cena: ${saved.cena||0}h`;
+
+    const diff = oreMin !== null ? ((oreMin/60) - std) : null;
+    const diffStr = diff === null ? '(parziale)'
+      : diff > 0 ? `+${diff.toFixed(2)}h` : `${diff.toFixed(2)}h`;
+
+    rows.push([d, GIORNI[wd], tipo.toUpperCase(),
+      dettaglio, oreMin !== null ? fmtH(oreMin) : '(parziale)',
+      diffStr, saved.note || '']);
+  }
+
+  rows.push([]);
+  rows.push(['TOTALE','','','', fmtH(totMin),'','']);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:7},{wch:13},{wch:12},{wch:48},{wch:13},{wch:12},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws, `${MESI[curMonth-1]} ${curYear}`);
+  XLSX.writeFile(wb, `Ore_${MESI[curMonth-1]}_${curYear}.xlsx`);
+  toast('📥 Excel scaricato!');
+}
+
+// ── NAV ──
+document.getElementById('prev-month').addEventListener('click', () => {
+  curMonth--; if (curMonth<1){curMonth=12;curYear--;}
+  selDay=null; renderMese(); renderRiepilogo();
+});
+document.getElementById('next-month').addEventListener('click', () => {
+  curMonth++; if (curMonth>12){curMonth=1;curYear++;}
+  selDay=null; renderMese(); renderRiepilogo();
+});
+
+// ── TABS ──
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id===`page-${name}`));
+  if (name==='riepilogo') renderRiepilogo();
+  if (name==='inserisci') updateForm();
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator)
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ── INIT ──
+renderMese();
+renderRiepilogo();
+</script>
+</body>
+</html>
