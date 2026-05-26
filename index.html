@@ -266,47 +266,14 @@ header{background:var(--surf);border-bottom:1px solid var(--border);
         </div>
       </div>
 
-      <!-- TRASFERTA: campi durata -->
+      <!-- TRASFERTA: entrata / uscita -->
       <div class="fields-section" id="sec-trasferta" style="display:none">
-        <h4>✈️ Trasferta — Durate (ore)</h4>
+        <h4>✈️ Orario Trasferta</h4>
         <div class="time-grid">
-          <div class="time-field">
-            <label>🚗 Viaggio A/R (h)</label>
-            <div class="dur-wrap">
-              <button onclick="stepDur('t-viaggio',-0.5)">−</button>
-              <input class="dur-input" type="number" id="t-viaggio" value="" min="0" max="24" step="0.5" placeholder="0"/>
-              <button onclick="stepDur('t-viaggio',0.5)">+</button>
-            </div>
-          </div>
-          <div class="time-field">
-            <label>💼 Lavoro (h)</label>
-            <div class="dur-wrap">
-              <button onclick="stepDur('t-lavoro',-0.5)">−</button>
-              <input class="dur-input" type="number" id="t-lavoro" value="" min="0" max="24" step="0.5" placeholder="0"/>
-              <button onclick="stepDur('t-lavoro',0.5)">+</button>
-            </div>
-          </div>
-          <div class="time-field">
-            <label>🍽️ Pausa Pranzo (h)</label>
-            <div class="dur-wrap">
-              <button onclick="stepDur('t-pranzo',-0.5)">−</button>
-              <input class="dur-input" type="number" id="t-pranzo" value="" min="0" max="4" step="0.5" placeholder="0"/>
-              <button onclick="stepDur('t-pranzo',0.5)">+</button>
-            </div>
-          </div>
-          <div class="time-field">
-            <label>🍷 Pausa Cena (h)</label>
-            <div class="dur-wrap">
-              <button onclick="stepDur('t-cena',-0.5)">−</button>
-              <input class="dur-input" type="number" id="t-cena" value="" min="0" max="4" step="0.5" placeholder="0"/>
-              <button onclick="stepDur('t-cena',0.5)">+</button>
-            </div>
-          </div>
-        </div>
-        <div style="margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:8px;
-             font-size:11px;color:var(--muted);line-height:1.6">
-          Le ore lavorate in trasferta = Viaggio + Lavoro<br>
-          Le pause vengono registrate ma non conteggiate
+          <div class="time-field"><label>Entrata</label>
+            <input type="text" id="t-entrata" inputmode="numeric" maxlength="5" placeholder="08:00" autocomplete="off"/></div>
+          <div class="time-field"><label>Uscita</label>
+            <input type="text" id="t-uscita" inputmode="numeric" maxlength="5" placeholder="18:00" autocomplete="off"/></div>
         </div>
       </div>
 
@@ -420,11 +387,10 @@ function calcOreEntry(entry) {
     return null;
   }
   if (tipo === 'trasferta') {
-    // ore lavorate = viaggio + lavoro (in minuti)
-    const v = parseFloat(entry.viaggio || 0) * 60;
-    const l = parseFloat(entry.lavoro  || 0) * 60;
-    const tot = v + l;
-    return tot > 0 ? Math.round(tot) : null;
+    const e = toMins(entry.entrata);
+    const u = toMins(entry.uscita);
+    if (e !== null && u !== null) return Math.max(0, u - e);
+    return null;
   }
   return null;
 }
@@ -468,7 +434,7 @@ function renderMese() {
       else if (tipo === 'continuato')
         timesStr = [saved.entrata, saved.uscita].filter(Boolean).join(' → ') || '(parziale)';
       else if (tipo === 'trasferta')
-        timesStr = `🚗${saved.viaggio||0}h  💼${saved.lavoro||0}h  🍽️${saved.pranzo||0}h  🍷${saved.cena||0}h`;
+        timesStr = [saved.entrata, saved.uscita].filter(Boolean).join(' → ') || '(parziale)';
     }
 
     card.innerHTML = `
@@ -543,10 +509,8 @@ function buildEntryFromForm() {
   }
   if (tipo === 'trasferta') {
     return { ...base,
-      viaggio: document.getElementById('t-viaggio').value || '0',
-      lavoro:  document.getElementById('t-lavoro').value  || '0',
-      pranzo:  document.getElementById('t-pranzo').value  || '0',
-      cena:    document.getElementById('t-cena').value    || '0',
+      entrata: document.getElementById('t-entrata').value,
+      uscita:  document.getElementById('t-uscita').value,
     };
   }
 }
@@ -576,16 +540,14 @@ function updateForm() {
     document.getElementById('c-entrata').value = saved.entrata || '';
     document.getElementById('c-uscita').value  = saved.uscita  || '';
   } else if (tipo === 'trasferta') {
-    document.getElementById('t-viaggio').value = saved.viaggio || '';
-    document.getElementById('t-lavoro').value  = saved.lavoro  || '';
-    document.getElementById('t-pranzo').value  = saved.pranzo  || '';
-    document.getElementById('t-cena').value    = saved.cena    || '';
+    document.getElementById('t-entrata').value = saved.entrata || '';
+    document.getElementById('t-uscita').value  = saved.uscita  || '';
   }
   document.getElementById('f-note').value = saved.note || '';
 
   // Ascolta cambiamenti per aggiornare ore live
   ['s-entrata','s-inizio-pausa','s-fine-pausa','s-uscita',
-   'c-entrata','c-uscita','t-viaggio','t-lavoro','t-pranzo','t-cena']
+   'c-entrata','c-uscita','t-entrata','t-uscita']
     .forEach(id => {
       const el = document.getElementById(id);
       el.removeEventListener('change', refreshOre);
@@ -612,8 +574,8 @@ function saveDay() {
       toast('⚠️ Inserisci almeno entrata o uscita', 'var(--warn)'); return;
     }
   } else if (curTipo === 'trasferta') {
-    if (!entry.viaggio && !entry.lavoro && !entry.pranzo && !entry.cena) {
-      toast('⚠️ Inserisci almeno una durata', 'var(--warn)'); return;
+    if (!entry.entrata && !entry.uscita) {
+      toast('⚠️ Inserisci almeno entrata o uscita', 'var(--warn)'); return;
     }
   }
 
@@ -633,7 +595,7 @@ function deleteDay() {
   // reset form
   ['s-entrata','s-inizio-pausa','s-fine-pausa','s-uscita','c-entrata','c-uscita'].forEach(id =>
     document.getElementById(id).value = '');
-  ['t-viaggio','t-lavoro','t-pranzo','t-cena'].forEach(id =>
+  ['t-entrata','t-uscita'].forEach(id =>
     document.getElementById(id).value = '');
   document.getElementById('f-note').value = '';
   document.getElementById('f-ore-tot').textContent = '–';
@@ -675,65 +637,144 @@ function renderRiepilogo() {
     ? `su ${daysInMonth(curYear,curMonth)} giorni del mese` : 'Nessun dato inserito';
 }
 
-// ── EXPORT EXCEL ──
+// ── EXPORT EXCEL — Formato Bocedi ──
 function exportExcel() {
   const md = monthData();
   if (!Object.keys(md).length) { toast('⚠️ Nessun dato da esportare','var(--warn)'); return; }
 
-  const std = parseFloat(document.getElementById('std-hours').value || 8);
-  const wb  = XLSX.utils.book_new();
-  const rows = [];
+  const wb = XLSX.utils.book_new();
+  const ws = {};
+  const n  = daysInMonth(curYear, curMonth);
 
-  // Titolo
-  rows.push([`Registro Ore — ${MESI[curMonth-1]} ${curYear}`]);
-  rows.push([]);
-  rows.push(['Giorno','Giorno Sett.','Tipo','Dettaglio Orari',
-             'Ore Lavorate','Differenza','Note']);
+  // Utility
+  const C = (r,c) => XLSX.utils.encode_cell({r,c});
+  const setCell = (r, c, v, s) => { ws[C(r,c)] = { v, t: typeof v==='number'?'n':'s', s: s||{} }; };
 
-  const n = daysInMonth(curYear, curMonth);
-  let totMin = 0;
+  // Stili base
+  const RED    = 'C0000C';
+  const YELLOW = 'FFFF99';
+  const BLACK  = '000000';
+  const WHITE  = 'FFFFFF';
+  const hdrStyle = {
+    fill:{fgColor:{rgb:'C0000C'}},
+    font:{bold:true,color:{rgb:WHITE},name:'Arial',sz:9},
+    alignment:{horizontal:'center',vertical:'center'},
+    border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}}
+  };
+  const cellStyle = (bold=false, center=false) => ({
+    font:{bold,name:'Arial',sz:9,color:{rgb:BLACK}},
+    alignment:{horizontal:center?'center':'left',vertical:'center'},
+    border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}}
+  });
+  const yellowStyle = {
+    fill:{fgColor:{rgb:'FFFF99'}},
+    font:{name:'Arial',sz:9},
+    alignment:{horizontal:'center',vertical:'center'},
+    border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}}
+  };
 
+  // ── RIGA 0: Logo area + Nome/Cognome/Mese  (righe 0-3) ──
+  // Logotipo simulato con testo stilizzato (celle A0:D3)
+  // Bocedi header sinistro
+  setCell(0,0,'NFB BOCEDI', {font:{bold:true,color:{rgb:RED},sz:14,name:'Arial'},alignment:{horizontal:'left',vertical:'center'}});
+  setCell(1,0,'www.bocedisrl.com', {font:{sz:8,name:'Arial',color:{rgb:'444444'}},alignment:{horizontal:'left'}});
+  setCell(2,0,'Tel.+39 0522.767025', {font:{sz:8,name:'Arial',color:{rgb:'444444'}},alignment:{horizontal:'left'}});
+
+  // Nome/Cognome/Mese — colonne E-H (col 4-7)
+  const nome = 'FILIPPO';
+  const cognome = 'ZANNONI';
+  setCell(0,4,'NOME:', {font:{bold:true,sz:10,name:'Arial'},alignment:{horizontal:'left',vertical:'center'},border:{top:{style:'medium'},bottom:{style:'thin'},left:{style:'medium'},right:{style:'thin'}}});
+  setCell(0,5,nome,    {font:{bold:true,sz:10,name:'Arial'},alignment:{horizontal:'left',vertical:'center'},border:{top:{style:'medium'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'medium'}}});
+  setCell(1,4,'COGNOME:', {font:{bold:true,sz:10,name:'Arial'},alignment:{horizontal:'left',vertical:'center'},border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'medium'},right:{style:'thin'}}});
+  setCell(1,5,cognome,    {font:{bold:true,sz:10,name:'Arial'},alignment:{horizontal:'left',vertical:'center'},border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'medium'}}});
+  setCell(2,4,'MESE:', {font:{bold:true,sz:10,name:'Arial'},alignment:{horizontal:'left',vertical:'center'},border:{top:{style:'thin'},bottom:{style:'medium'},left:{style:'medium'},right:{style:'thin'}}});
+  setCell(2,5,`${MESI[curMonth-1]} ${curYear}`, {font:{bold:true,sz:10,name:'Arial'},alignment:{horizontal:'left',vertical:'center'},border:{top:{style:'thin'},bottom:{style:'medium'},left:{style:'thin'},right:{style:'medium'}}});
+
+  // ── RIGA 3: "ORE MENSILI" titolo ──
+  setCell(3,0,'ORE MENSILI', {font:{bold:true,sz:11,name:'Arial'},alignment:{horizontal:'center',vertical:'center'}});
+
+  // ── RIGA 4: intestazione colonne ──
+  const HDR = ['GIORNO','DATA','ORE','TRASFERTA','NOTE'];
+  HDR.forEach((h,i) => setCell(4, i, h, hdrStyle));
+
+  // ── RIGHE DATI (5 … 5+n-1) ──
+  let totMins = 0;
   for (let d = 1; d <= n; d++) {
-    const wd    = weekday(curYear, curMonth, d);
-    const saved = md[d];
+    const r   = 4 + d;   // riga excel (0-indexed)
+    const wd  = weekday(curYear, curMonth, d);
+    const isWk = wd >= 5;
+    const saved = md[d] || null;
+    const dataStr = `${String(d).padStart(2,'0')}/${String(curMonth).padStart(2,'0')}/${curYear}`;
+    const sBase = cellStyle(false, false);
+    const sNum  = cellStyle(true,  true);
 
-    if (!saved) {
-      if (wd < 5)
-        rows.push([d, GIORNI[wd], '–','–','–','–','']);
-      else
-        rows.push([d, GIORNI[wd], wd===5?'Sabato':'Domenica','','','','']);
-      continue;
+    // Giorno numero
+    setCell(r, 0, d, {...sNum, fill: isWk?{fgColor:{rgb:'EEEEEE'}}:undefined});
+
+    // Data
+    setCell(r, 1, dataStr, {...sBase, alignment:{horizontal:'center',vertical:'center'}, fill: isWk?{fgColor:{rgb:'EEEEEE'}}:undefined});
+
+    // Ore
+    let oreStr = '';
+    if (saved) {
+      const mins = calcOreEntry(saved);
+      if (mins !== null) {
+        totMins += mins;
+        const h = Math.floor(mins/60), m = mins%60;
+        oreStr = `${h}:${String(m).padStart(2,'0')}`;
+      } else {
+        oreStr = '(parz.)';
+      }
     }
+    setCell(r, 2, oreStr, {...cellStyle(false,true), fill: isWk?{fgColor:{rgb:'EEEEEE'}}:undefined});
 
-    const tipo   = saved.tipo || 'standard';
-    const oreMin = calcOreEntry(saved);
-    if (oreMin) totMin += oreMin;
+    // Trasferta (X se trasferta)
+    const isTrasferta = saved?.tipo === 'trasferta';
+    setCell(r, 3, isTrasferta ? 'X' : '', {...cellStyle(false,true), fill: isWk?{fgColor:{rgb:'EEEEEE'}}:undefined});
 
-    let dettaglio = '';
-    if (tipo === 'standard')
-      dettaglio = `Entrata: ${saved.entrata||'–'} | Pausa: ${saved.inizio_pausa||'–'}–${saved.fine_pausa||'–'} | Uscita: ${saved.uscita||'–'}`;
-    else if (tipo === 'continuato')
-      dettaglio = `Entrata: ${saved.entrata||'–'} | Uscita: ${saved.uscita||'–'}`;
-    else if (tipo === 'trasferta')
-      dettaglio = `Viaggio: ${saved.viaggio||0}h | Lavoro: ${saved.lavoro||0}h | Pranzo: ${saved.pranzo||0}h | Cena: ${saved.cena||0}h`;
-
-    const diff = oreMin !== null ? ((oreMin/60) - std) : null;
-    const diffStr = diff === null ? '(parziale)'
-      : diff > 0 ? `+${diff.toFixed(2)}h` : `${diff.toFixed(2)}h`;
-
-    rows.push([d, GIORNI[wd], tipo.toUpperCase(),
-      dettaglio, oreMin !== null ? fmtH(oreMin) : '(parziale)',
-      diffStr, saved.note || '']);
+    // Note
+    let noteStr = saved?.note || '';
+    if (saved && !noteStr) {
+      if (saved.tipo === 'standard')
+        noteStr = [saved.entrata, saved.inizio_pausa, saved.fine_pausa, saved.uscita].filter(Boolean).join(' · ');
+      else if (saved.tipo === 'continuato' || saved.tipo === 'trasferta')
+        noteStr = [saved.entrata, saved.uscita].filter(Boolean).join(' → ');
+    }
+    setCell(r, 4, noteStr, {...sBase, fill: isWk?{fgColor:{rgb:'EEEEEE'}}:undefined});
   }
 
-  rows.push([]);
-  rows.push(['TOTALE','','','', fmtH(totMin),'','']);
+  // ── RIGA ANNOTAZIONI MANCATA TIMBRATURA ──
+  const annRow = 4 + n + 1;
+  for (let c = 0; c < 5; c++) {
+    setCell(annRow, c, c===2 ? 'ANNOTAZIONI MANCATA TIMBRATURA' : '', {
+      fill:{fgColor:{rgb:'FFFF99'}},
+      font:{name:'Arial',sz:9,bold:c===2},
+      alignment:{horizontal:'center',vertical:'center'},
+      border:{top:{style:'thin'},bottom:{style:'medium'},left:c===0?{style:'medium'}:{style:'thin'},right:c===4?{style:'medium'}:{style:'thin'}}
+    });
+  }
 
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:7},{wch:13},{wch:12},{wch:48},{wch:13},{wch:12},{wch:20}];
+  // ── MERGE CELLS ──
+  ws['!merges'] = [
+    {s:{r:0,c:0},e:{r:2,c:3}},   // Logo area
+    {s:{r:3,c:0},e:{r:3,c:4}},   // "ORE MENSILI"
+    {s:{r:annRow,c:0},e:{r:annRow,c:4}}, // Annotazioni
+    {s:{r:0,c:4},e:{r:0,c:7}},   // NOME
+    {s:{r:1,c:4},e:{r:1,c:7}},   // COGNOME
+    {s:{r:2,c:4},e:{r:2,c:7}},   // MESE
+  ];
+
+  // ── DIMENSIONI ──
+  ws['!cols'] = [{wch:8},{wch:12},{wch:8},{wch:10},{wch:40}];
+  ws['!rows'] = [];
+  for (let i = 0; i <= annRow; i++) ws['!rows'][i] = {hpt: i<4?16: i===4?18 : 14};
+
+  // Range
+  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:annRow,c:7}});
+
   XLSX.utils.book_append_sheet(wb, ws, `${MESI[curMonth-1]} ${curYear}`);
-  XLSX.writeFile(wb, `Ore_${MESI[curMonth-1]}_${curYear}.xlsx`);
-  toast('📥 Excel scaricato!');
+  XLSX.writeFile(wb, `OreMensili_${MESI[curMonth-1]}_${curYear}.xlsx`);
+  toast('📥 Excel Bocedi scaricato!');
 }
 
 // ── NAV ──
@@ -779,7 +820,7 @@ function setupTimeInput(el) {
     refreshOre();
   });
 }
-['s-entrata','s-inizio-pausa','s-fine-pausa','s-uscita','c-entrata','c-uscita'].forEach(id => {
+['s-entrata','s-inizio-pausa','s-fine-pausa','s-uscita','c-entrata','c-uscita','t-entrata','t-uscita'].forEach(id => {
   const el = document.getElementById(id);
   if (el) setupTimeInput(el);
 });
